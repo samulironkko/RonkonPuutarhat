@@ -245,10 +245,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                 });
     }
 
-    private void createMarkerList() {
-
-
-    }
 
     private void drawMarkers() {
 
