@@ -13,9 +13,11 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.cocoahero.android.geojson.Feature;
@@ -32,6 +34,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.mapbox.geojson.Point;
 import com.mapbox.mapboxsdk.Mapbox;
+import com.mapbox.mapboxsdk.camera.CameraUpdateFactory;
 import com.mapbox.mapboxsdk.geometry.LatLng;
 import com.mapbox.mapboxsdk.geometry.LatLngQuad;
 import com.mapbox.mapboxsdk.maps.MapView;
@@ -82,16 +85,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     private GeoJsonSource indoorBuildingSource;
     FirebaseFirestore db;
 
-    private List<List<Point>> boundingBoxList;
     private ImageView hoveringMarker;
     private Style mapStyle;
-    private Layer droppedMarkerLayer;
     private MapboxMap mapboxMap;
     private CircleManager circleManager;
-    private List<CircleOptions> circleOptionsList;
+    private LatLng mapTargetLatLng;
     private int activeMarkerId;
 
     BottomSheetBehavior bottomSheetBehavior;
+    BottomSheetBehavior addBottomSheetBehavior;
+
+    EditText addEditText;
+    TextView textView;
 
     private ArrayList<Marker> markers = new ArrayList<>();
 
@@ -115,6 +120,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         db = FirebaseFirestore.getInstance();
 
+        addEditText = findViewById(R.id.add_edit_text);
+        textView = findViewById(R.id.bottom_text_view);
+
         Button deleteButton = findViewById(R.id.delete_button);
         deleteButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -131,8 +139,36 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             }
         });
 
+        Button confirmButton = findViewById(R.id.confirm_button);
+        confirmButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                final Marker marker = new Marker(mapTargetLatLng, addEditText.getText().toString());
+
+                db.collection("markers")
+                        .add(marker)
+                        .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                            @Override
+                            public void onSuccess(DocumentReference documentReference) {
+
+                                marker.setId(documentReference.getId());
+                                markers.add(marker);
+
+                                CircleOptions circleOptions = new CircleOptions()
+                                        .withLatLng(markers.get(markers.size() - 1).getLatLng())
+                                        .withCircleRadius(8f);
+
+                                circleManager.create(circleOptions);
+                                addBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+                                Toast.makeText(MainActivity.this, "Document added", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+            }
+        });
+
         final ConstraintLayout bottomSheet = findViewById(R.id.bottom_sheet);
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
+        bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
 
         bottomSheetBehavior.setBottomSheetCallback(new BottomSheetBehavior.BottomSheetCallback() {
             @Override
@@ -145,6 +181,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
             }
         });
+
+        ConstraintLayout addBottomsheet = findViewById(R.id.add_bottom_sheet);
+        addBottomSheetBehavior = BottomSheetBehavior.from(addBottomsheet);
+        addBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
 
 
         hoveringMarker = new ImageView(MainActivity.this);
@@ -167,30 +207,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 } else {
 
-                    LatLng mapTargetLatLng = mapboxMap.getCameraPosition().target;
+                    mapTargetLatLng = mapboxMap.getCameraPosition().target;
 
                     fab.setImageResource(R.drawable.baseline_add_24);
                     hoveringMarker.setVisibility(View.INVISIBLE);
 
-                    final Marker marker = new Marker(mapTargetLatLng, "");
-
-                    db.collection("markers")
-                            .add(marker)
-                            .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
-                                @Override
-                                public void onSuccess(DocumentReference documentReference) {
-
-                                    marker.setId(documentReference.getId());
-                                    markers.add(marker);
-
-                                    CircleOptions circleOptions = new CircleOptions()
-                                            .withLatLng(markers.get(markers.size() - 1).getLatLng())
-                                            .withCircleRadius(8f);
-
-                                    circleManager.create(circleOptions);
-                                    Toast.makeText(MainActivity.this, "Document added", Toast.LENGTH_SHORT).show();
-                                }
-                            });
+                    addBottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
 
                     mapView.removeView(hoveringMarker);
 
@@ -225,13 +247,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     private void createMarkerList() {
 
-        circleOptionsList = new ArrayList<>();
-        for (int i = 0; i < markers.size(); i++) {
-            circleOptionsList.add(new CircleOptions()
-                    .withLatLng(markers.get(i).getLatLng())
-                    .withCircleRadius(8f)
-            );
-        }
+
     }
 
     private void drawMarkers() {
@@ -242,11 +258,20 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             public void onAnnotationClick(Circle circle) {
                 bottomSheetBehavior.setState(BottomSheetBehavior.STATE_EXPANDED);
                 activeMarkerId = (int) circle.getId();
+                textView.setText(markers.get(activeMarkerId).getText());
+
+                mapboxMap.animateCamera(CameraUpdateFactory.newLatLngZoom(circle.getLatLng(), 18));
                 Toast.makeText(MainActivity.this, "Circle clicked " + markers.get((int) circle.getId()).getId(), Toast.LENGTH_SHORT).show();
             }
         });
 
-        createMarkerList();
+        List<CircleOptions> circleOptionsList = new ArrayList<>();
+        for (int i = 0; i < markers.size(); i++) {
+            circleOptionsList.add(new CircleOptions()
+                    .withLatLng(markers.get(i).getLatLng())
+                    .withCircleRadius(8f)
+            );
+        }
 
         circleManager.create(circleOptionsList);
 
