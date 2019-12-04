@@ -97,6 +97,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     BottomSheetBehavior addBottomSheetBehavior;
 
     FloatingActionButton discardFab;
+    Button discardButton;
 
     EditText addEditText;
     TextView textView;
@@ -125,6 +126,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         addEditText = findViewById(R.id.add_edit_text);
         textView = findViewById(R.id.bottom_text_view);
+
+        discardButton = findViewById(R.id.discard_button);
 
         Button deleteButton = findViewById(R.id.delete_button);
         deleteButton.setOnClickListener(new View.OnClickListener() {
@@ -162,12 +165,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                                         .withCircleRadius(4f);
 
                                 circleManager.create(circleOptions);
-                                addBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+                                discardButton.callOnClick();
                                 Toast.makeText(MainActivity.this, "Document added", Toast.LENGTH_SHORT).show();
                             }
                         });
             }
         });
+
+
 
         final ConstraintLayout bottomSheet = findViewById(R.id.bottom_sheet);
         bottomSheetBehavior = BottomSheetBehavior.from(bottomSheet);
@@ -226,6 +231,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 }
 
+            }
+        });
+
+        discardButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                fab.getBackground().setColorFilter(getResources().getColor(R.color.mapbox_blue), PorterDuff.Mode.MULTIPLY);
+                bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+                addBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+                addEditText.setText("");
+                discardFab.hide();
             }
         });
 
@@ -397,8 +413,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onBackPressed() {
         if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED || addBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
-            bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
-            addBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+            discardButton.callOnClick();
             return;
         }
         if (hoveringMarker.getVisibility() == View.VISIBLE){
