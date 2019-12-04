@@ -26,7 +26,20 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintRight_toRightOf="parent"
             android:layout_margin="20dp"
+            app:backgroundTint="@color/mapbox_blue"
             android:src="@drawable/baseline_add_24"
+
+            />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/discardFAB"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            android:layout_margin="20dp"
+            android:src="@drawable/baseline_clear_24"
+            android:visibility="gone"
 
             />
 

@@ -7,6 +7,7 @@ import androidx.core.graphics.ColorUtils;
 
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Gravity;
@@ -94,6 +95,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     BottomSheetBehavior bottomSheetBehavior;
     BottomSheetBehavior addBottomSheetBehavior;
+
+    FloatingActionButton discardFab;
 
     EditText addEditText;
     TextView textView;
@@ -191,13 +194,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         hoveringMarker.setImageResource(R.drawable.baseline_add_24);
         hoveringMarker.setVisibility(View.INVISIBLE);
 
+        discardFab = findViewById(R.id.discardFAB);
         final FloatingActionButton fab = findViewById(R.id.addFAB);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (hoveringMarker.getVisibility() == View.INVISIBLE) {
                     hoveringMarker.setVisibility(View.VISIBLE);
+                    fab.getBackground().setColorFilter(Color.GREEN, PorterDuff.Mode.MULTIPLY);
                     fab.setImageResource(R.drawable.baseline_done_24);
+
+
+                    discardFab.show();
 
                     FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
                             ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -218,6 +226,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                 }
 
+            }
+        });
+
+
+        discardFab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                fab.setImageResource(R.drawable.baseline_add_24);
+                fab.getBackground().setColorFilter(getResources().getColor(R.color.mapbox_blue), PorterDuff.Mode.MULTIPLY);
+
+                hoveringMarker.setVisibility(View.INVISIBLE);
+                mapView.removeView(hoveringMarker);
+                discardFab.hide();
             }
         });
     }
@@ -265,7 +286,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         for (int i = 0; i < markers.size(); i++) {
             circleOptionsList.add(new CircleOptions()
                     .withLatLng(markers.get(i).getLatLng())
-                    .withCircleRadius(8f)
+                    .withCircleRadius(4f)
             );
         }
 
@@ -276,7 +297,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     @Override
     public void onMapReady(@NonNull final MapboxMap mapboxMap) {
 
-        mapboxMap.setStyle(Style.LIGHT, new Style.OnStyleLoaded() {
+        mapboxMap.setStyle(new Style.Builder().fromUri("mapbox://styles/samulironkko/ck3q7293j15ix1cpdhd88wzzf"), new Style.OnStyleLoaded() {
             @Override
             public void onStyleLoaded(@NonNull Style style) {
 
@@ -345,7 +366,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
                         stop(12.5f, 0.5f),
                         stop(13f, 1f))));
 
-        style.addLayer(indoorBuildingLayer);
+        //style.addLayer(indoorBuildingLayer);
 
         LineLayer indoorBuildingLineLayer = new LineLayer("indoor-building-line", "indoor-building").withProperties(
                 lineColor(Color.parseColor("#50667f")),
@@ -375,8 +396,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     @Override
     public void onBackPressed() {
-        if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
+        if (bottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED || addBottomSheetBehavior.getState() == BottomSheetBehavior.STATE_EXPANDED) {
             bottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+            addBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
+            return;
+        }
+        if (hoveringMarker.getVisibility() == View.VISIBLE){
+            discardFab.callOnClick();
             return;
         }
         super.onBackPressed();
