@@ -159,7 +159,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
                                 CircleOptions circleOptions = new CircleOptions()
                                         .withLatLng(markers.get(markers.size() - 1).getLatLng())
-                                        .withCircleRadius(8f);
+                                        .withCircleRadius(4f);
 
                                 circleManager.create(circleOptions);
                                 addBottomSheetBehavior.setState(BottomSheetBehavior.STATE_HIDDEN);
